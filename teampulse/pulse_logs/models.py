@@ -14,9 +14,9 @@ class PulseLog(models.Model):
     # Team is not linked to Team model as it's write-only
     team = models.IntegerField()
     timestamp = models.DateTimeField(auto_now_add=True)
-    timestamp_local = localtime(timestamp)
-    year = timestamp_local.year
-    week_index = timestamp_local.isocalendar()[1]
+    timestamp_local = models.DateTimeField()
+    year = models.IntegerField()
+    week_index = models.IntegerField()
 
 class Mood(models.Model):
     value = models.IntegerField()
