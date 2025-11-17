@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.utils.timezone import localtime
 
 class PulseLog(models.Model):
     user = models.ForeignKey(
@@ -13,6 +14,9 @@ class PulseLog(models.Model):
     # Team is not linked to Team model as it's write-only
     team = models.IntegerField()
     timestamp = models.DateTimeField(auto_now_add=True)
+    timestamp_local = localtime(timestamp)
+    year = timestamp_local.year
+    week_index = timestamp_local.isocalendar()[1]
 
 class Mood(models.Model):
     value = models.IntegerField()
