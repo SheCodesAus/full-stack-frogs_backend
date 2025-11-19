@@ -1,10 +1,10 @@
 # Your Product Name
-> Your Group Name
+> Your  Name
 
 > [!NOTE]
-> This repo has been shared with your group. Use it to develop your group project.
+> This repo has been shared with your client. Use it to develop your last project.
 >
-> Your group will have received two identical repos - one for your project's back-end, and another for the front-end. Although they are identical right now they are about to diverge, because you'll be using one to create a DRF project and the other to create a React project!
+> Your  will have received two identical repos - one for your project's back-end, and another for the front-end. Although they are identical right now they are about to diverge, because you'll be using one to create a DRF project and the other to create a React project!
 
 > [!IMPORTANT]  
 > Use this `README.md` file to document your MVP using Markdown. Feel free to duplicate the product description aspects between the front-end README and the back-end README, but consider splitting out the technical design aspects to the specific repo that implements them. 
