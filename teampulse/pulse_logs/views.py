@@ -20,3 +20,17 @@ class MoodList(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class WorkloadList(APIView):
+
+    def get(self, request):
+        workloads = Workload.objects.all()
+        serializer = WorkloadSerializer(workloads, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = WorkloadSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
