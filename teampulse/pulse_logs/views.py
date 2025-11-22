@@ -4,7 +4,10 @@ from rest_framework import status, permissions
 from django.http import Http404
 from django.db.models import Sum
 from .models import PulseLog, Mood, Workload
-from .serializers import MoodSerializer
+from event_logs.models import EventLog
+from .serializers import MoodSerializer, WorkloadSerializer
+
+
 # from .permissions import IsOwnerOrReadOnly, isStaffOrReadOnly
 
 class MoodList(APIView):
