@@ -5,3 +5,8 @@ class MoodSerializer(serializers.ModelSerializer):
     class Meta:
         model = apps.get_model('pulse_logs.Mood')
         fields = '__all__'
+
+class WorkloadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = apps.get_model('pulse_logs.Workload')
+        fields = '__all__'
