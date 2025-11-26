@@ -15,8 +15,6 @@ class PulseLog(models.Model):
     team = models.IntegerField()
     timestamp = models.DateTimeField(auto_now_add=True)
     timestamp_local = models.DateTimeField()
-    year = models.IntegerField()
-    week_index = models.IntegerField()
 
 class Mood(models.Model):
     value = models.IntegerField()
