@@ -66,5 +66,6 @@ class CustomAuthToken(ObtainAuthToken):
             'token': token.key,
             'user_id': user.id,
             'is_staff': user.is_staff,
-            'first_name': user.first_name
+            'first_name': user.first_name,
+            'team': user.team.id if user.team else None
         })
