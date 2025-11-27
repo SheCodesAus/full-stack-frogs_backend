@@ -2,10 +2,10 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
 from django.http import Http404
-from .models import Team
-from .models import CustomUser
-from .serializers import TeamSerializer
-from .serializers import CustomUserSerializer
+from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.authtoken.models import Token
+from .models import Team, CustomUser
+from .serializers import TeamSerializer, CustomUserSerializer
 
 # from .permissions import IsOwnerOrReadOnly, isStaffOrReadOnly
 
@@ -55,3 +55,17 @@ class CustomUserList(APIView):
                 serializer.errors,
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+class CustomAuthToken(ObtainAuthToken):
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        token, created = Token.objects.get_or_create(user=user)
+        return Response({
+            'token': token.key,
+            'user_id': user.id,
+            'is_staff': user.is_staff,
+            'first_name': user.first_name,
+            'team': user.team.id if user.team else None
+        })
