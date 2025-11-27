@@ -5,6 +5,7 @@ from django.http import Http404
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
 from .models import Team, CustomUser
+from event_logs.models import EventLog
 from .serializers import TeamSerializer, CustomUserSerializer
 
 # from .permissions import IsOwnerOrReadOnly, isStaffOrReadOnly
@@ -20,6 +21,13 @@ class TeamList(APIView):
         serializer = TeamSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
+
+            EventLog.objects.create(
+                event_name='New Team Created',
+                version=0,
+                metadata=f"{serializer.data}"
+            )
+
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
@@ -46,6 +54,18 @@ class CustomUserList(APIView):
 
         if serializer.is_valid():
             serializer.save()
+
+            user_data = {
+                'id': serializer.data.get('id'),
+                'username': serializer.data.get('username'),
+                'is_staff': serializer.data.get('is_staff')
+            }
+            EventLog.objects.create(
+                event_name='New User Created',
+                version=0,
+                metadata=f"{user_data}"
+            )
+
             return Response(
                 serializer.data,
                 status=status.HTTP_201_CREATED
@@ -62,6 +82,18 @@ class CustomAuthToken(ObtainAuthToken):
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data['user']
         token, created = Token.objects.get_or_create(user=user)
+
+        logon_data = {
+            'id': user.id,
+            'username': user.username,
+            'has_logged': None
+        }
+        EventLog.objects.create(
+            event_name='User Logged On',
+            version=0,
+            metadata=f"{logon_data}"
+        )
+
         return Response({
             'token': token.key,
             'user_id': user.id,

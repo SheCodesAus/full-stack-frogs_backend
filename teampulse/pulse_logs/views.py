@@ -21,6 +21,13 @@ class MoodList(APIView):
         serializer = MoodSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
+
+            EventLog.objects.create(
+                event_name='New Mood Created',
+                version=0,
+                metadata=f"{serializer.data}"
+            )
+
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -35,6 +42,13 @@ class WorkloadList(APIView):
         serializer = WorkloadSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
+
+            EventLog.objects.create(
+                event_name='New Workload Created',
+                version=0,
+                metadata=f"{serializer.data}"
+            )
+
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -49,6 +63,21 @@ class PulseLogList(APIView):
         serializer = PulseLogSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save(user=request.user)
+
+            pulse_data = {
+                'user': serializer.data.get('user'),
+                'team': serializer.data.get('team'),
+                'year_week': serializer.data.get('year_week'),
+                'mood': serializer.data.get('mood'),
+                'workload': serializer.data.get('workload'),
+                'comment': serializer.data.get('comment')
+            }
+            EventLog.objects.create(
+                event_name='New Pulse Log Created',
+                version=0,
+                metadata=f"{pulse_data}"
+            )
+
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
