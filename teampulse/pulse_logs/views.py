@@ -23,9 +23,9 @@ class MoodList(APIView):
             serializer.save()
 
             EventLog.objects.create(
-                event_name='New Mood Created',
+                event_name='mood_created',
                 version=0,
-                metadata=f"{serializer.data}"
+                metadata=serializer.data
             )
 
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -44,9 +44,9 @@ class WorkloadList(APIView):
             serializer.save()
 
             EventLog.objects.create(
-                event_name='New Workload Created',
+                event_name='workload_created',
                 version=0,
-                metadata=f"{serializer.data}"
+                metadata=serializer.data
             )
 
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -73,9 +73,9 @@ class PulseLogList(APIView):
                 'comment': serializer.data.get('comment')
             }
             EventLog.objects.create(
-                event_name='New Pulse Log Created',
+                event_name='pulse_log_created',
                 version=0,
-                metadata=f"{pulse_data}"
+                metadata=pulse_data
             )
 
             return Response(serializer.data, status=status.HTTP_201_CREATED)

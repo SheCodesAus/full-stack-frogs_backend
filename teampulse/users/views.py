@@ -23,9 +23,9 @@ class TeamList(APIView):
             serializer.save()
 
             EventLog.objects.create(
-                event_name='New Team Created',
+                event_name='team_created',
                 version=0,
-                metadata=f"{serializer.data}"
+                metadata=serializer.data
             )
 
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -61,9 +61,9 @@ class CustomUserList(APIView):
                 'is_staff': serializer.data.get('is_staff')
             }
             EventLog.objects.create(
-                event_name='New User Created',
+                event_name='user_created',
                 version=0,
-                metadata=f"{user_data}"
+                metadata=user_data
             )
 
             return Response(
@@ -89,9 +89,9 @@ class CustomAuthToken(ObtainAuthToken):
             'has_logged': None
         }
         EventLog.objects.create(
-            event_name='User Logged On',
+            event_name='user_logged_on',
             version=0,
-            metadata=f"{logon_data}"
+            metadata=logon_data
         )
 
         return Response({
