@@ -6,6 +6,7 @@ from django.db.models import Sum
 from .models import PulseLog, Mood, Workload
 from event_logs.models import EventLog
 from .serializers import MoodSerializer, WorkloadSerializer, PulseLogSerializer
+from .utils import get_time_index
 
 
 # from .permissions import IsOwnerOrReadOnly, isStaffOrReadOnly
@@ -62,7 +63,11 @@ class PulseLogList(APIView):
     def post(self, request):
         serializer = PulseLogSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save(user=request.user)
+                
+            timestamp_local = serializer.validated_data.get('timestamp_local')
+            time_indices = get_time_index(timestamp_local)
+
+            serializer.save(user=request.user, **time_indices)
 
             pulse_data = {
                 'user': serializer.data.get('user'),
