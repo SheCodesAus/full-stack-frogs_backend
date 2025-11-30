@@ -10,7 +10,7 @@ class PulseLog(models.Model):
     )
     mood = models.ForeignKey('Mood', on_delete=models.CASCADE)
     workload = models.ForeignKey('Workload', on_delete=models.CASCADE)
-    comment = models.TextField(null=True)
+    comment = models.TextField(null=True, blank=True)
     # Team is not linked to Team model as it's write-only
     team = models.IntegerField()
     timestamp = models.DateTimeField(auto_now_add=True)
