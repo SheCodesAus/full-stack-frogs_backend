@@ -10,6 +10,42 @@ from .serializers import TeamSerializer, CustomUserSerializer
 
 # from .permissions import IsOwnerOrReadOnly, isStaffOrReadOnly
 
+class TeamDetail(APIView):
+    def get_object(self, pk):
+        try:
+            return Team.objects.get(pk=pk)
+        except Team.DoesNotExist:
+            raise Http404
+        
+    def get(self, request, pk):
+        team = self.get_object(pk)
+        serializer = TeamSerializer(team) #we donot need many anymore, only unique instance is required
+        return Response(serializer.data)
+    
+    def put(self, request, pk):
+        print(f"updating: {pk}")
+        team = self.get_object(pk) #giving the instance to the "serializers"-instance
+        serializer = TeamSerializer(
+            instance=team,
+            data=request.data,
+            partial=True
+        )
+        if serializer.is_valid():
+            serializer.save()
+
+            EventLog.objects.create(
+                event_name='team_updated',
+                version=0,
+                metadata=serializer.data
+            )
+
+            return Response(serializer.data)
+        else:
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )   
+
 class TeamList(APIView):
 
     def get(self, request):
