@@ -13,6 +13,12 @@ from .utils import get_time_index
 
 class MoodList(APIView):
 
+    def get_object(self, pk):
+        try:
+            return Mood.objects.get(pk=pk)
+        except Mood.DoesNotExist:
+            raise Http404
+
     def get(self, request):
         moods = Mood.objects.all()
         serializer = MoodSerializer(moods, many=True)
@@ -31,7 +37,30 @@ class MoodList(APIView):
 
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def put(self, request, pk):
+        print(f"updating: {pk}")
+        mood = self.get_object(pk) #giving the instance to the "serializers"-instance
+        serializer = MoodSerializer(
+            instance=mood,
+            data=request.data,
+            partial=True
+        )
+        if serializer.is_valid():
+            serializer.save()
 
+            EventLog.objects.create(
+                event_name='mood_updated',
+                version=0,
+                metadata=serializer.data
+            )
+
+            return Response(serializer.data)
+        else:
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )   
 class WorkloadList(APIView):
 
     def get(self, request):
