@@ -32,6 +32,13 @@ class TeamDetail(APIView):
         )
         if serializer.is_valid():
             serializer.save()
+
+            EventLog.objects.create(
+                event_name='team_updated',
+                version=0,
+                metadata=serializer.data
+            )
+
             return Response(serializer.data)
         else:
             return Response(
