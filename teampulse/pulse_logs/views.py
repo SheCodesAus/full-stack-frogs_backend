@@ -11,33 +11,14 @@ from .utils import get_time_index
 
 # from .permissions import IsOwnerOrReadOnly, isStaffOrReadOnly
 
-class MoodList(APIView):
+class MoodDetail(APIView):
 
     def get_object(self, pk):
         try:
             return Mood.objects.get(pk=pk)
         except Mood.DoesNotExist:
             raise Http404
-
-    def get(self, request):
-        moods = Mood.objects.all()
-        serializer = MoodSerializer(moods, many=True)
-        return Response(serializer.data)
-
-    def post(self, request):
-        serializer = MoodSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-
-            EventLog.objects.create(
-                event_name='mood_created',
-                version=0,
-                metadata=serializer.data
-            )
-
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+        
     def put(self, request, pk):
         print(f"updating: {pk}")
         mood = self.get_object(pk) #giving the instance to the "serializers"-instance
@@ -61,6 +42,28 @@ class MoodList(APIView):
                 serializer.errors,
                 status=status.HTTP_400_BAD_REQUEST
             )   
+
+class MoodList(APIView):
+
+    def get(self, request):
+        moods = Mood.objects.all()
+        serializer = MoodSerializer(moods, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = MoodSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+
+            EventLog.objects.create(
+                event_name='mood_created',
+                version=0,
+                metadata=serializer.data
+            )
+
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
 class WorkloadList(APIView):
 
     def get(self, request):
