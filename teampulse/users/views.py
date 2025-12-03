@@ -89,6 +89,19 @@ class CustomUserDetail(APIView):
         )
         if serializer.is_valid():
             serializer.save()
+
+            user_data = {
+                'id': serializer.data.get('id'),
+                'username': serializer.data.get('username'),
+                'is_staff': serializer.data.get('is_staff'),
+                'is_active': serializer.data.get('is_active')
+            }
+            EventLog.objects.create(
+                event_name='user_updated',
+                version=0,
+                metadata=user_data
+            )
+
             return Response(serializer.data)
         else:
             return Response(
