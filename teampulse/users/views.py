@@ -9,6 +9,7 @@ from .models import Team, CustomUser
 from event_logs.models import EventLog
 from .serializers import TeamSerializer, CustomUserSerializer
 from pulse_logs.utils import check_user_has_logged
+from pulse_logs.serializers import PulseLogSerializer
 
 # from .permissions import IsOwnerOrReadOnly, isStaffOrReadOnly
 
@@ -87,8 +88,20 @@ class CustomUserDetail(APIView):
         
     def get(self, request, pk):
         user = self.get_object(pk)
-        serializer = CustomUserSerializer(user) #we donot need many anymore, only unique instance is required
-        return Response(serializer.data)
+        serializer = CustomUserSerializer(user) #we do not need many anymore, only unique instance is required
+
+        try:
+            limit = int(request.query_params.get('limit', 26))
+        except (ValueError, TypeError):
+            limit = 26
+
+        pulse_logs = user.logged_pulses.order_by('-year_week')[:limit]
+        pulse_logs_serializer = PulseLogSerializer(pulse_logs, many=True)
+
+        response_data = serializer.data
+        response_data['logged_pulses'] = pulse_logs_serializer.data
+
+        return Response(response_data)
     
     def put(self, request, pk):
         print(f"updating: {pk}")
