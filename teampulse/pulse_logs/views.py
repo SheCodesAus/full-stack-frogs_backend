@@ -88,7 +88,13 @@ class WorkloadList(APIView):
 class PulseLogList(APIView):
 
     def get(self, request):
-        pulse_logs = PulseLog.objects.all()
+        year_week = request.query_params.get('year_week')
+
+        if year_week:
+            pulse_logs = PulseLog.objects.filter(year_week=year_week)
+        else:
+            pulse_logs = PulseLog.objects.all()
+
         serializer = PulseLogSerializer(pulse_logs, many=True)
         return Response(serializer.data)
 
