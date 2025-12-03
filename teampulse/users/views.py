@@ -8,6 +8,7 @@ from rest_framework.authtoken.models import Token
 from .models import Team, CustomUser
 from event_logs.models import EventLog
 from .serializers import TeamSerializer, CustomUserSerializer
+from pulse_logs.utils import check_user_has_logged
 
 # from .permissions import IsOwnerOrReadOnly, isStaffOrReadOnly
 
@@ -158,10 +159,12 @@ class CustomAuthToken(ObtainAuthToken):
         user = serializer.validated_data['user']
         token, created = Token.objects.get_or_create(user=user)
 
+        has_logged = check_user_has_logged(user)
+
         logon_data = {
             'id': user.id,
             'username': user.username,
-            'has_logged': None
+            'has_logged': has_logged
         }
         EventLog.objects.create(
             event_name='user_logged_on',
@@ -174,5 +177,6 @@ class CustomAuthToken(ObtainAuthToken):
             'user_id': user.id,
             'is_staff': user.is_staff,
             'first_name': user.first_name,
-            'team': user.team.id if user.team else None
+            'team': user.team.id if user.team else None,
+            'has_logged': has_logged
         })
