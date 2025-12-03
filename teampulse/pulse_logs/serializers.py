@@ -13,6 +13,8 @@ class WorkloadSerializer(serializers.ModelSerializer):
 
 class PulseLogSerializer(serializers.ModelSerializer):
     user = serializers.ReadOnlyField(source='user.id')
+    first_name = serializers.ReadOnlyField(source='user.first_name')
+    last_name = serializers.ReadOnlyField(source='user.last_name')
     # Make these fields optional for the user, so they can be calculated automatically on creation
     # but still updated manually if needed later.
     year = serializers.IntegerField(required=False)
