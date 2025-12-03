@@ -6,7 +6,7 @@ from django.db.models import Sum
 from .models import PulseLog, Mood, Workload
 from event_logs.models import EventLog
 from .serializers import MoodSerializer, WorkloadSerializer, PulseLogSerializer
-from .utils import get_time_index
+from .utils import get_time_index, check_user_has_logged
 
 
 # from .permissions import IsOwnerOrReadOnly, isStaffOrReadOnly
@@ -97,6 +97,14 @@ class PulseLogList(APIView):
         if serializer.is_valid():
                 
             timestamp_local = serializer.validated_data.get('timestamp_local')
+            
+            # Check if user has already logged for this week
+            if check_user_has_logged(request.user, timestamp_local):
+                return Response(
+                    {"detail": "You have already logged a pulse for this week."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
             time_indices = get_time_index(timestamp_local)
 
             serializer.save(user=request.user, **time_indices)
