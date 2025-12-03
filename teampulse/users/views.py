@@ -2,6 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
 from django.http import Http404
+from django.db.models import Count, Q
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
 from .models import Team, CustomUser
@@ -49,9 +50,18 @@ class TeamDetail(APIView):
 class TeamList(APIView):
 
     def get(self, request):
-        teams = Team.objects.all()
+        # Annotate the queryset with the count of related CustomUser objects where is_active is True
+        teams = Team.objects.annotate(
+            user_count=Count('customuser', filter=Q(customuser__is_active=True))
+        )
         serializer = TeamSerializer(teams, many=True)
-        return Response(serializer.data)
+            
+        # Inject the annotated count into the serialized data
+        data = serializer.data
+        for team, item in zip(teams, data):
+            item['user_count'] = team.user_count
+                
+        return Response(data)
 
     def post(self, request):
         serializer = TeamSerializer(data=request.data)
