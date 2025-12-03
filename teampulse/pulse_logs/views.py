@@ -106,6 +106,20 @@ class PulseLogList(APIView):
             
             # Check if user has already logged for this week
             if check_user_has_logged(request.user, timestamp_local):
+
+                attempt_data = {
+                    'user': request.user.id,
+                    'team': serializer.data.get('team'),
+                    'mood': serializer.data.get('mood'),
+                    'workload': serializer.data.get('workload'),
+                    'comment': serializer.data.get('comment')
+                }
+                EventLog.objects.create(
+                    event_name='duplicate_pulse_log_attempted',
+                    version=0,
+                    metadata=attempt_data
+                )
+
                 return Response(
                     {"detail": "You have already logged a pulse for this week."},
                     status=status.HTTP_400_BAD_REQUEST
