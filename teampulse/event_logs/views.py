@@ -10,7 +10,8 @@ from .serializers import EventLogSerializer
 class EventLogList(APIView):
 
     def get(self, request):
-        event_logs = EventLog.objects.all()
+        # Order by timestamp descending (latest first)
+        event_logs = EventLog.objects.all().order_by('-timestamp')
         serializer = EventLogSerializer(event_logs, many=True)
 
         return Response(serializer.data)
