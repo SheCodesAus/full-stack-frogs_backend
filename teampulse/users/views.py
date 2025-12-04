@@ -2,11 +2,14 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
 from django.http import Http404
+from django.db.models import Count, Q
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
 from .models import Team, CustomUser
 from event_logs.models import EventLog
 from .serializers import TeamSerializer, CustomUserSerializer
+from pulse_logs.utils import check_user_has_logged
+from pulse_logs.serializers import PulseLogSerializer
 
 # from .permissions import IsOwnerOrReadOnly, isStaffOrReadOnly
 
@@ -49,9 +52,18 @@ class TeamDetail(APIView):
 class TeamList(APIView):
 
     def get(self, request):
-        teams = Team.objects.all()
+        # Annotate the queryset with the count of related CustomUser objects where is_active is True
+        teams = Team.objects.annotate(
+            user_count=Count('customuser', filter=Q(customuser__is_active=True))
+        )
         serializer = TeamSerializer(teams, many=True)
-        return Response(serializer.data)
+            
+        # Inject the annotated count into the serialized data
+        data = serializer.data
+        for team, item in zip(teams, data):
+            item['user_count'] = team.user_count
+                
+        return Response(data)
 
     def post(self, request):
         serializer = TeamSerializer(data=request.data)
@@ -76,8 +88,20 @@ class CustomUserDetail(APIView):
         
     def get(self, request, pk):
         user = self.get_object(pk)
-        serializer = CustomUserSerializer(user) #we donot need many anymore, only unique instance is required
-        return Response(serializer.data)
+        serializer = CustomUserSerializer(user) #we do not need many anymore, only unique instance is required
+
+        try:
+            limit = int(request.query_params.get('limit', 26))
+        except (ValueError, TypeError):
+            limit = 26
+
+        pulse_logs = user.logged_pulses.order_by('-year_week')[:limit]
+        pulse_logs_serializer = PulseLogSerializer(pulse_logs, many=True)
+
+        response_data = serializer.data
+        response_data['logged_pulses'] = pulse_logs_serializer.data
+
+        return Response(response_data)
     
     def put(self, request, pk):
         print(f"updating: {pk}")
@@ -89,6 +113,19 @@ class CustomUserDetail(APIView):
         )
         if serializer.is_valid():
             serializer.save()
+
+            user_data = {
+                'id': serializer.data.get('id'),
+                'username': serializer.data.get('username'),
+                'is_staff': serializer.data.get('is_staff'),
+                'is_active': serializer.data.get('is_active')
+            }
+            EventLog.objects.create(
+                event_name='user_updated',
+                version=0,
+                metadata=user_data
+            )
+
             return Response(serializer.data)
         else:
             return Response(
@@ -135,10 +172,12 @@ class CustomAuthToken(ObtainAuthToken):
         user = serializer.validated_data['user']
         token, created = Token.objects.get_or_create(user=user)
 
+        has_logged = check_user_has_logged(user)
+
         logon_data = {
             'id': user.id,
             'username': user.username,
-            'has_logged': None
+            'has_logged': has_logged
         }
         EventLog.objects.create(
             event_name='user_logged_on',
@@ -151,5 +190,6 @@ class CustomAuthToken(ObtainAuthToken):
             'user_id': user.id,
             'is_staff': user.is_staff,
             'first_name': user.first_name,
-            'team': user.team.id if user.team else None
+            'team': user.team.id if user.team else None,
+            'has_logged': has_logged
         })
