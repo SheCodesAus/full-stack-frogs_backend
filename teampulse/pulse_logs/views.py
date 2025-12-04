@@ -6,10 +6,42 @@ from django.db.models import Sum
 from .models import PulseLog, Mood, Workload
 from event_logs.models import EventLog
 from .serializers import MoodSerializer, WorkloadSerializer, PulseLogSerializer
-from .utils import get_time_index
+from .utils import get_time_index, check_user_has_logged
 
 
 # from .permissions import IsOwnerOrReadOnly, isStaffOrReadOnly
+
+class MoodDetail(APIView):
+
+    def get_object(self, pk):
+        try:
+            return Mood.objects.get(pk=pk)
+        except Mood.DoesNotExist:
+            raise Http404
+        
+    def put(self, request, pk):
+        print(f"updating: {pk}")
+        mood = self.get_object(pk) #giving the instance to the "serializers"-instance
+        serializer = MoodSerializer(
+            instance=mood,
+            data=request.data,
+            partial=True
+        )
+        if serializer.is_valid():
+            serializer.save()
+
+            EventLog.objects.create(
+                event_name='mood_updated',
+                version=0,
+                metadata=serializer.data
+            )
+
+            return Response(serializer.data)
+        else:
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )   
 
 class MoodList(APIView):
 
@@ -31,7 +63,7 @@ class MoodList(APIView):
 
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+    
 class WorkloadList(APIView):
 
     def get(self, request):
@@ -56,7 +88,13 @@ class WorkloadList(APIView):
 class PulseLogList(APIView):
 
     def get(self, request):
-        pulse_logs = PulseLog.objects.all()
+        year_week = request.query_params.get('year_week')
+
+        if year_week:
+            pulse_logs = PulseLog.objects.filter(year_week=year_week)
+        else:
+            pulse_logs = PulseLog.objects.all()
+
         serializer = PulseLogSerializer(pulse_logs, many=True)
         return Response(serializer.data)
 
@@ -65,6 +103,28 @@ class PulseLogList(APIView):
         if serializer.is_valid():
                 
             timestamp_local = serializer.validated_data.get('timestamp_local')
+            
+            # Check if user has already logged for this week
+            if check_user_has_logged(request.user, timestamp_local):
+
+                attempt_data = {
+                    'user': request.user.id,
+                    'team': serializer.data.get('team'),
+                    'mood': serializer.data.get('mood'),
+                    'workload': serializer.data.get('workload'),
+                    'comment': serializer.data.get('comment')
+                }
+                EventLog.objects.create(
+                    event_name='duplicate_pulse_log_attempted',
+                    version=0,
+                    metadata=attempt_data
+                )
+
+                return Response(
+                    {"detail": "You have already logged a pulse for this week."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
             time_indices = get_time_index(timestamp_local)
 
             serializer.save(user=request.user, **time_indices)
