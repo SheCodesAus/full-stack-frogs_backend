@@ -5,9 +5,11 @@ from django.http import Http404
 from django.db.models import Sum
 from .models import EventLog
 from .serializers import EventLogSerializer
-# from .permissions import IsOwnerOrReadOnly, isStaffOrReadOnly
+from users.permissions import IsSuperUser
 
 class EventLogList(APIView):
+
+    permission_classes = [permissions.IsAuthenticated, IsSuperUser]
 
     def get(self, request):
         # Order by timestamp descending (latest first)
