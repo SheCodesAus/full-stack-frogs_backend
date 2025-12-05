@@ -89,9 +89,24 @@ class PulseLogList(APIView):
 
     def get(self, request):
         year_week = request.query_params.get('year_week')
+        weeks_total = request.query_params.get('weeks_total')
 
         if year_week:
             pulse_logs = PulseLog.objects.filter(year_week=year_week)
+        elif weeks_total:
+            try:
+                limit = int(weeks_total)
+            except (ValueError, TypeError):
+                limit = 13 # default fallback if invalid integer
+            
+            # Get the top 'limit' distinct year_week values
+            top_weeks = PulseLog.objects.values_list('year_week', flat=True)\
+                                        .distinct()\
+                                        .order_by('-year_week')[:limit]
+            
+            # Filter logs belonging to those weeks
+            pulse_logs = PulseLog.objects.filter(year_week__in=top_weeks)\
+                                         .order_by('-year_week', '-timestamp')
         else:
             pulse_logs = PulseLog.objects.all()
 
