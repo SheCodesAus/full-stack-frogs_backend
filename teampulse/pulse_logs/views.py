@@ -7,11 +7,12 @@ from .models import PulseLog, Mood, Workload
 from event_logs.models import EventLog
 from .serializers import MoodSerializer, WorkloadSerializer, PulseLogSerializer
 from .utils import get_time_index, check_user_has_logged
+from users.permissions import IsOwner, IsStaff, IsSuperUser
 
-
-# from .permissions import IsOwnerOrReadOnly, isStaffOrReadOnly
 
 class MoodDetail(APIView):
+
+    permission_classes = [permissions.IsAuthenticated, IsSuperUser | IsStaff]
 
     def get_object(self, pk):
         try:
@@ -45,6 +46,19 @@ class MoodDetail(APIView):
 
 class MoodList(APIView):
 
+    def get_permissions(self):
+        """
+        Instantiates and returns the list of permissions that this view requires.
+        """
+        if self.request.method == 'GET':
+            # Allow anyone to get mood list
+            permission_classes = [permissions.AllowAny]
+        else:
+            # Only allow authenticated Superusers or Staff to create moods
+            permission_classes = [permissions.IsAuthenticated, IsSuperUser | IsStaff]
+        return [permission() for permission in permission_classes]
+
+
     def get(self, request):
         moods = Mood.objects.all()
         serializer = MoodSerializer(moods, many=True)
@@ -66,6 +80,19 @@ class MoodList(APIView):
     
 class WorkloadList(APIView):
 
+    def get_permissions(self):
+        """
+        Instantiates and returns the list of permissions that this view requires.
+        """
+        if self.request.method == 'GET':
+            # Allow anyone to get workload list
+            permission_classes = [permissions.AllowAny]
+        else:
+            # Only allow authenticated Superusers or Staff to create workloads
+            permission_classes = [permissions.IsAuthenticated, IsSuperUser | IsStaff]
+        return [permission() for permission in permission_classes]
+
+
     def get(self, request):
         workloads = Workload.objects.all()
         serializer = WorkloadSerializer(workloads, many=True)
@@ -86,6 +113,19 @@ class WorkloadList(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class PulseLogList(APIView):
+
+    def get_permissions(self):
+        """
+        Instantiates and returns the list of permissions that this view requires.
+        """
+        if self.request.method == 'POST':
+            # Allow anyone logged in to create pulse logs
+            permission_classes = [permissions.IsAuthenticated]
+        else:
+            # Only allow authenticated Superusers or Staff to get pulse logs
+            permission_classes = [permissions.IsAuthenticated, IsSuperUser | IsStaff]
+        return [permission() for permission in permission_classes]
+
 
     def get(self, request):
         year_week = request.query_params.get('year_week')
@@ -162,6 +202,9 @@ class PulseLogList(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class PulseLogDetail(APIView):
+
+    permission_classes = [permissions.IsAuthenticated, IsSuperUser | IsStaff]
+
     def get_object(self, pk):
         try:
             return PulseLog.objects.get(pk=pk)
