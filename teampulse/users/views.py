@@ -5,9 +5,9 @@ from django.http import Http404
 from django.db.models import Count, Q
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
-from .models import Team, CustomUser
+from .models import Team, CustomUser, Kudos
 from event_logs.models import EventLog
-from .serializers import TeamSerializer, CustomUserSerializer
+from .serializers import TeamSerializer, CustomUserSerializer, KudosCreateSerializer, KudosDisplaySerializer
 from pulse_logs.utils import check_user_has_logged
 from pulse_logs.serializers import PulseLogSerializer
 from .permissions import IsOwner, IsStaff, IsSuperUser
@@ -249,3 +249,59 @@ class CustomUserMeView(APIView):
             'team': serializer.data.get('team') if serializer.data.get('team') else None,
             'has_logged': check_user_has_logged(request.user)
         })
+
+# 1. Send kudos to ANYONE - valid users
+
+class SendKudosView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = KudosCreateSerializer
+
+    def get(self, request):
+        serializer = KudosCreateSerializer(request.kudo)
+
+# 2. Dashboard – recipient sees new kudos once + historical count
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def dashboard(request):
+    user = request.user
+
+    new_kudos = Kudos.objects.filter(recipient=user, is_acknowledged=False)
+    serializer = KudosDisplaySerializer(new_kudos, many=True)
+
+    new_kudos.update(is_acknowledged=True)  # mark as is_acknowledged immediately
+
+    total_received = Kudos.objects.filter(recipient=user).count()
+
+    return Response({
+        "new_kudos": serializer.data,
+        "new_kudos_count": len(serializer.data),
+        "historical_total": total_received,
+    })
+
+
+# 3. Sender: see all kudos one has sent (always visible)
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def my_sent_kudos(request):
+    sent = Kudos.objects.filter(sender=request.user)
+    serializer = KudosDisplaySerializer(sent, many=True)
+    return Response({
+        "sent_kudos": serializer.data,
+        "total_sent": sent.count()
+    })
+
+
+# 4. Optional: Manager / Admin view – all kudos in the entire team
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def all_team_kudos(request):
+    # You can restrict this further (e.g. only for staff, or users in certain teams)
+    if not request.user.is_staff:  # or check if user is in a "HR" group, etc.
+        return Response({"detail": "Not authorized."}, status=403)
+
+    all_kudos = Kudos.objects.all()
+    serializer = KudosDisplaySerializer(all_kudos, many=True)
+    return Response({
+        "team_kudos": serializer.data,
+        "total": all_kudos.count()
+    })

@@ -18,3 +18,10 @@ class Kudos(models.Model):
     recipient = models.IntegerField()
     message = models.TextField(null=True)
     is_acknowledged = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['-timestamp']
+        verbose_name_plural = "Kudos"
+
+    def __str__(self):
+        return f"{self.sender} → {self.recipient} ({self.created_at.date()})"

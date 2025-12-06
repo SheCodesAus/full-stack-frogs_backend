@@ -106,7 +106,7 @@ class PulseLogList(APIView):
             
             # Filter logs belonging to those weeks
             pulse_logs = PulseLog.objects.filter(year_week__in=top_weeks)\
-                                         .order_by('-year_week', '-timestamp')
+            .order_by('-year_week', '-timestamp')
         else:
             pulse_logs = PulseLog.objects.all()
 
