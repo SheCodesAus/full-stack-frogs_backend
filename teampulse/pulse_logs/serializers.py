@@ -25,3 +25,19 @@ class PulseLogSerializer(serializers.ModelSerializer):
         model = apps.get_model('pulse_logs.PulseLog')
         fields = '__all__'
         read_only_fields = ('user', 'timestamp')
+
+class PulseLogDetailSerializer(PulseLogSerializer):
+
+    def update(self, instance, validated_data):
+        instance.user = validated_data.get('user', instance.user)
+        instance.team = validated_data.get('team', instance.team)
+        instance.mood = validated_data.get('mood', instance.mood)
+        instance.workload = validated_data.get('workload', instance.workload)
+        instance.comment = validated_data.get('comment', instance.comment)
+        instance.timestamp = instance.timestamp
+        instance.timestamp_local = validated_data.get('timestamp_local', instance.timestamp_local)
+        instance.year = validated_data.get('year', instance.year)
+        instance.week_index = validated_data.get('week_index', instance.week_index)
+        instance.year_week = validated_data.get('year_week', instance.year_week)
+        instance.save()
+        return instance
