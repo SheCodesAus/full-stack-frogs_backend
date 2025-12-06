@@ -239,7 +239,7 @@ class PulseLogDetail(APIView):
                 # If user has provided year/week_index/year_week, it will be ignored in favour of timestamp_local
                 timestamp_local = serializer.validated_data.get('timestamp_local')
                 time_indices = get_time_index(timestamp_local)
-                serializer.save(user=request.user, **time_indices)
+                serializer.save(**time_indices)
             else:
                 serializer.save()
 

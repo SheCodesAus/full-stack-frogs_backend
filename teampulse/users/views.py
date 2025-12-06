@@ -104,6 +104,18 @@ class CustomUserDetail(APIView):
 
     permission_classes = [permissions.IsAuthenticated, IsSuperUser | IsStaff | IsOwner]
 
+    def get_permissions(self):
+        """
+        Instantiates and returns the list of permissions that this view requires.
+        """
+        if self.request.method == 'PUT':
+            # Only superuser or owner can update user
+            permission_classes = [permissions.IsAuthenticated, IsSuperUser | IsOwner]
+        else:
+            # Only allow authenticated Superusers or Staff to list users
+            permission_classes = [permissions.IsAuthenticated, IsSuperUser | IsStaff]
+        return [permission() for permission in permission_classes]
+
     def get_object(self, pk):
         try:
             user = CustomUser.objects.get(pk=pk)
