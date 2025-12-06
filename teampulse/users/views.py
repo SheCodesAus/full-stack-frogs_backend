@@ -246,5 +246,6 @@ class CustomUserMeView(APIView):
             'is_staff': serializer.data.get('is_staff'),
             'first_name': serializer.data.get('first_name'),
             'last_name': serializer.data.get('last_name'),
-            'team': serializer.data.get('team').id if serializer.data.get('team') else None
+            'team': serializer.data.get('team') if serializer.data.get('team') else None,
+            'has_logged': check_user_has_logged(request.user)
         })
