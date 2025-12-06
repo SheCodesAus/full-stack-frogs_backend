@@ -5,7 +5,7 @@ from django.http import Http404
 from django.db.models import Sum
 from .models import PulseLog, Mood, Workload
 from event_logs.models import EventLog
-from .serializers import MoodSerializer, WorkloadSerializer, PulseLogSerializer
+from .serializers import MoodSerializer, WorkloadSerializer, PulseLogSerializer, PulseLogDetailSerializer
 from .utils import get_time_index, check_user_has_logged
 from users.permissions import IsOwner, IsStaff, IsSuperUser
 
@@ -126,7 +126,6 @@ class PulseLogList(APIView):
             permission_classes = [permissions.IsAuthenticated, IsSuperUser | IsStaff]
         return [permission() for permission in permission_classes]
 
-
     def get(self, request):
         year_week = request.query_params.get('year_week')
         weeks_total = request.query_params.get('weeks_total')
@@ -203,7 +202,17 @@ class PulseLogList(APIView):
 
 class PulseLogDetail(APIView):
 
-    permission_classes = [permissions.IsAuthenticated, IsSuperUser | IsStaff]
+    def get_permissions(self):
+        """
+        Instantiates and returns the list of permissions that this view requires.
+        """
+        if self.request.method == 'PUT':
+            # Allow only authenticated superuser to update pulse logs
+            permission_classes = [permissions.IsAuthenticated, IsSuperUser]
+        else:
+            # Allow only authenticated Superusers or Staff to get pulse logs
+            permission_classes = [permissions.IsAuthenticated, IsSuperUser | IsStaff]
+        return [permission() for permission in permission_classes]
 
     def get_object(self, pk):
         try:
@@ -215,3 +224,43 @@ class PulseLogDetail(APIView):
         pulse_log = self.get_object(pk)
         serializer = PulseLogSerializer(pulse_log)
         return Response(serializer.data)
+
+    def put(self, request, pk):
+        pulse_log = self.get_object(pk)
+        serializer = PulseLogDetailSerializer(
+            instance=pulse_log,
+            data=request.data,
+            partial=True
+        )
+        if serializer.is_valid():
+
+            if serializer.validated_data.get('timestamp_local'):
+                # If timestamp_local is provided, update the time indices
+                # If user has provided year/week_index/year_week, it will be ignored in favour of timestamp_local
+                timestamp_local = serializer.validated_data.get('timestamp_local')
+                time_indices = get_time_index(timestamp_local)
+                serializer.save(user=request.user, **time_indices)
+            else:
+                serializer.save()
+
+            pulse_data = {
+                'id': serializer.data.get('id'),
+                'user': serializer.data.get('user'),
+                'team': serializer.data.get('team'),
+                'year_week': serializer.data.get('year_week'),
+                'mood': serializer.data.get('mood'),
+                'workload': serializer.data.get('workload'),
+                'comment': serializer.data.get('comment')
+            }
+            EventLog.objects.create(
+                event_name='pulse_log_updated',
+                version=0,
+                metadata=pulse_data
+            )
+
+            return Response(serializer.data)
+        else:
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )

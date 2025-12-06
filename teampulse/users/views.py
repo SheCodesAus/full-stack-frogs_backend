@@ -174,7 +174,30 @@ class CustomUserList(APIView):
         return [permission() for permission in permission_classes]
 
     def get(self, request): #getting a list of users
-        users = CustomUser.objects.all()
+        year_week_param = request.query_params.get('year_week')
+        missing_log_param = request.query_params.get('missing_log', 'False')
+        
+        if year_week_param:
+            try:
+                yw = int(year_week_param)
+                
+                if missing_log_param.lower() == 'true':
+                    # Find users who have NOT logged a pulse for this week
+                    # We use exclude() to remove users who have a matching log
+                    users = CustomUser.objects.exclude(logged_pulses__year_week=yw)
+                else:
+                    # Find users who HAVE logged a pulse for this week
+                    # distinct() is used because a user might theoretically have duplicates
+                    # or to prevent duplicate rows from the join, though duplicates are generally prevented by logic
+                    users = CustomUser.objects.filter(logged_pulses__year_week=yw).distinct()
+                
+            except (ValueError, TypeError):
+                # If year_week is invalid, return empty list or handle error
+                users = CustomUser.objects.none()
+        else:
+            # No filter provided, return all users
+            users = CustomUser.objects.all()
+
         serializer = CustomUserSerializer(users, many=True)
         return Response(serializer.data)
 
