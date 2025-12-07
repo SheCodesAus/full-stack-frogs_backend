@@ -102,8 +102,6 @@ class TeamList(APIView):
 
 class CustomUserDetail(APIView):
 
-    permission_classes = [permissions.IsAuthenticated, IsSuperUser | IsStaff | IsOwner]
-
     def get_permissions(self):
         """
         Instantiates and returns the list of permissions that this view requires.
@@ -113,7 +111,7 @@ class CustomUserDetail(APIView):
             permission_classes = [permissions.IsAuthenticated, IsSuperUser | IsOwner]
         else:
             # Only allow authenticated Superusers or Staff to list users
-            permission_classes = [permissions.IsAuthenticated, IsSuperUser | IsStaff]
+            permission_classes = [permissions.IsAuthenticated, IsSuperUser | IsStaff | IsOwner]
         return [permission() for permission in permission_classes]
 
     def get_object(self, pk):
