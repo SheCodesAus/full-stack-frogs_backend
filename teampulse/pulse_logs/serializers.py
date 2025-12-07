@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from django.apps import apps
+from django.contrib.auth import get_user_model
 
 class MoodSerializer(serializers.ModelSerializer):
     class Meta:
@@ -27,6 +28,12 @@ class PulseLogSerializer(serializers.ModelSerializer):
         read_only_fields = ('user', 'timestamp')
 
 class PulseLogDetailSerializer(PulseLogSerializer):
+
+    # Redefine user to be writable for updates
+    user = serializers.PrimaryKeyRelatedField(
+        queryset=get_user_model().objects.all(),
+        required=False
+    )
 
     def update(self, instance, validated_data):
         instance.user = validated_data.get('user', instance.user)
