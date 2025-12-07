@@ -22,7 +22,9 @@ class PulseLogSerializer(serializers.ModelSerializer):
     week_index = serializers.IntegerField(required=False)
     year_week = serializers.IntegerField(required=False)
     mood_value = serializers.ReadOnlyField(source='mood.value')
+    mood_description = serializers.ReadOnlyField(source='mood.description')
     workload_value = serializers.ReadOnlyField(source='workload.value')
+    workload_description = serializers.ReadOnlyField(source='workload.description')
 
     class Meta:
         model = apps.get_model('pulse_logs.PulseLog')
