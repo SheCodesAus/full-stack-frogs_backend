@@ -78,6 +78,40 @@ class MoodList(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+class WorkloadDetail(APIView):
+
+    permission_classes = [permissions.IsAuthenticated, IsSuperUser | IsStaff]
+
+    def get_object(self, pk):
+        try:
+            return Workload.objects.get(pk=pk)
+        except Workload.DoesNotExist:
+            raise Http404
+        
+    def put(self, request, pk):
+        print(f"updating: {pk}")
+        workload = self.get_object(pk) #giving the instance to the "serializers"-instance
+        serializer = WorkloadSerializer(
+            instance=workload,
+            data=request.data,
+            partial=True
+        )
+        if serializer.is_valid():
+            serializer.save()
+
+            EventLog.objects.create(
+                event_name='workload_updated',
+                version=0,
+                metadata=serializer.data
+            )
+
+            return Response(serializer.data)
+        else:
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
 class WorkloadList(APIView):
 
     def get_permissions(self):
@@ -145,7 +179,7 @@ class PulseLogList(APIView):
             
             # Filter logs belonging to those weeks
             pulse_logs = PulseLog.objects.filter(year_week__in=top_weeks)\
-                                         .order_by('-year_week', '-timestamp')
+            .order_by('-year_week', '-timestamp')
         else:
             pulse_logs = PulseLog.objects.all()
 
