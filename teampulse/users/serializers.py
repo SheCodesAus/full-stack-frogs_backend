@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.apps import apps
-from .models import CustomUser
+from .models import CustomUser, Kudos
 
 class CustomUserSerializer(serializers.ModelSerializer):
 
@@ -42,3 +42,24 @@ class TeamSerializer(serializers.ModelSerializer):
     class Meta:
         model = apps.get_model('users.Team')
         fields = '__all__'
+
+class KudosSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = apps.get_model('users.Kudos')
+        fields = '__all__'
+
+class KudosDisplaySerializer(serializers.ModelSerializer):
+
+    sender = CustomUserSerializer(read_only=True)
+    recipient = CustomUserSerializer(read_only=True)
+
+    class Meta:
+        model = Kudos
+        fields = [
+            'id',
+            'sender',          # shows sender's username, first_name, etc.
+            'recipient',       # shows recipient's info
+            'message',
+            'timestamp',
+            'is_acknowledged'             # True/False — shows if recipient has read it
+        ]

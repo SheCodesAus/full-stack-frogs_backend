@@ -6,9 +6,9 @@ from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
-from .models import Team, CustomUser
+from .models import Team, CustomUser, Kudos
 from event_logs.models import EventLog
-from .serializers import TeamSerializer, CustomUserSerializer
+from .serializers import TeamSerializer, CustomUserSerializer, KudosSerializer, KudosDisplaySerializer
 from pulse_logs.utils import check_user_has_logged
 from pulse_logs.serializers import PulseLogSerializer
 from .permissions import IsOwner, IsStaff, IsSuperUser
@@ -298,7 +298,22 @@ class CustomUserMeView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        serializer = CustomUserSerializer(request.user)
+        user = request.user
+
+        # 1. Serialize current user profile
+        serializer = CustomUserSerializer(user)
+        
+
+# 2. Get NEW kudos (unseen) for this recipient
+        new_kudos_qs = Kudos.objects.filter(recipient=user, is_acknowledged=False)
+        new_kudos = KudosDisplaySerializer(new_kudos_qs, many=True).data
+# AUTO-MARK as seen the first time they visit /me/
+        if new_kudos:
+            new_kudos_qs.update(is_acknowledged=True)
+
+        # 3. Stats
+        total_received = Kudos.objects.filter(recipient=user).count()
+        total_sent = Kudos.objects.filter(sender=user).count()
 
         return Response({
             'id': serializer.data.get('id'),
@@ -307,5 +322,79 @@ class CustomUserMeView(APIView):
             'first_name': serializer.data.get('first_name'),
             'last_name': serializer.data.get('last_name'),
             'team': serializer.data.get('team') if serializer.data.get('team') else None,
-            'has_logged': check_user_has_logged(request.user)
+            'has_logged': check_user_has_logged(request.user),
+            "kudos":{
+                "new_kudos": new_kudos,                    # shown only once
+                "new_kudos_count": len(new_kudos),
+                "total_received": total_received,
+                "total_sent": total_sent,
+                "has_unread": len(new_kudos) > 0,
+            }
         })
+class KudosDetail(APIView):
+
+    permission_classes = [permissions.IsAuthenticated, IsSuperUser | IsStaff]
+
+    def get_object(self, pk):
+        try:
+            return Kudos.objects.get(pk=pk)
+        except Kudos.DoesNotExist:
+            raise Http404
+        
+    def put(self, request, pk):
+        print(f"updating: {pk}")
+        kudo = self.get_object(pk) #giving the instance to the "serializers"-instance
+        serializer = KudosSerializer(
+            instance=kudo,
+            data=request.data,
+            partial=True
+        )
+        if serializer.is_valid():
+            serializer.save()
+
+            EventLog.objects.create(
+                event_name='kudo_updated',
+                version=0,
+                metadata=serializer.data
+            )
+
+            return Response(serializer.data)
+        else:
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+class KudosList(APIView):
+
+    def get_permissions(self):
+        """
+        Instantiates and returns the list of permissions that this view requires.
+        """
+        if self.request.method == 'POST':
+            # Allow anyone to post a kudo
+            permission_classes = [permissions.IsAuthenticated]
+        else:
+            # Only allow authenticated Superusers or Staff to get kudos
+            permission_classes = [permissions.IsAuthenticated, IsSuperUser | IsStaff]
+        return [permission() for permission in permission_classes]
+
+
+    def get(self, request):
+        kudos = Kudos.objects.all()
+        serializer = KudosSerializer(kudos, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = KudosSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+
+            EventLog.objects.create(
+                event_name='kudo_created',
+                version=0,
+                metadata=serializer.data
+            )
+
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
