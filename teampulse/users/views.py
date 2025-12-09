@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status, permissions
 from django.http import Http404
 from django.db.models import Count, Q
+from django.shortcuts import get_object_or_404
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
 from .models import Team, CustomUser
@@ -109,6 +110,8 @@ class CustomUserDetail(APIView):
         if self.request.method == 'PUT':
             # Only superuser or owner can update user
             permission_classes = [permissions.IsAuthenticated, IsSuperUser | IsOwner]
+        elif self.request.method == 'DELETE':
+            permission_classes = [permissions.IsAuthenticated, IsSuperUser]
         else:
             # Only allow authenticated Superusers or Staff to list users
             permission_classes = [permissions.IsAuthenticated, IsSuperUser | IsStaff | IsOwner]
@@ -167,6 +170,30 @@ class CustomUserDetail(APIView):
             return Response(
                 serializer.errors,
                 status=status.HTTP_400_BAD_REQUEST
+            )
+
+    def delete(self, request, pk):
+        """
+        Handles DELETE requests to delete a single user instance.
+        'pk' is the primary key passed in the URL (e.g., /users/123/)
+        """
+        try:
+            # 1. Retrieve the user instance safely
+            # Note: get_object_or_404 is essential for safe retrieval
+            user_instance = get_object_or_404(CustomUser, pk=pk)
+
+            # 2. Perform the deletion
+            user_instance.delete()
+
+            # 3. Return a successful response
+            # HTTP 204 No Content is the standard response for successful deletion
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        except Exception as e:
+            # Handle unexpected errors during deletion
+            return Response(
+                {"detail": f"An error occurred during deletion: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
 class CustomUserList(APIView):
