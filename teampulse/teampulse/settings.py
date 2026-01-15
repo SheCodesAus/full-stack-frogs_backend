@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'pulse_logs.apps.PulseLogsConfig',
     'users.apps.UsersConfig',
     'event_logs.apps.EventLogsConfig',
+    'incentives.apps.IncentivesConfig',
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
