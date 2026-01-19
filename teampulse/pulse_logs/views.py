@@ -213,6 +213,13 @@ class PulseLogList(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
+            # Check if user belongs to the team "SHOWCASE 2026"
+            # If they are, return success without saving their data
+            # Due to time constraints, this is a hardcoded solution
+            if serializer.validated_data.get('team') == 34:
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
             time_indices = get_time_index(timestamp_local)
 
             serializer.save(user=request.user, **time_indices)
