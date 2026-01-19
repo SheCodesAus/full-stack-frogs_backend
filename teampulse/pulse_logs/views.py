@@ -8,6 +8,7 @@ from event_logs.models import EventLog
 from .serializers import MoodSerializer, WorkloadSerializer, PulseLogSerializer, PulseLogDetailSerializer
 from .utils import get_time_index, check_user_has_logged
 from users.permissions import IsOwner, IsStaff, IsSuperUser
+from users.models import Team
 
 
 class MoodDetail(APIView):
@@ -216,9 +217,8 @@ class PulseLogList(APIView):
             # Check if user belongs to the team "SHOWCASE 2026"
             # If they are, return success without saving their data
             # Due to time constraints, this is a hardcoded solution
-            if serializer.validated_data.get('team') == 34:
+            if request.user.team and request.user.team.team_name == "Showcase 2026":
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
-
 
             time_indices = get_time_index(timestamp_local)
 
