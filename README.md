@@ -48,7 +48,8 @@ Provide Guest users ability to post sticky notes to a live event board. Once pos
 User can submit a Pulse Log containing a chosen mood, chosen workload and optional comment. Restrictions apply:
 
 - User can only submit once a week.
-- User can not update submitted data
+- User can not update submitted data.
+- If user belongs to the team "Showcase 2026", then they can submit a Pulse Log repeatedly as it will never be saved.
 
 ### Nice To Haves
 
