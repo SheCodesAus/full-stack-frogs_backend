@@ -24,4 +24,5 @@ urlpatterns = [
     path('', include('users.urls')),
     path('', include('event_logs.urls')),
     path('api-token-auth/', CustomAuthToken.as_view(), name='api_token_auth'),
+    path('', include('incentives.urls')),
 ]
