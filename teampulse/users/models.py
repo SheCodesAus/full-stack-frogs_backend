@@ -14,7 +14,19 @@ class Team(models.Model):
 
 class Kudos(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
-    sender = models.IntegerField()
-    recipient = models.IntegerField()
+    sender = models.ForeignKey(
+        CustomUser,
+        on_delete=models.PROTECT,            # prevent deleting user if they sent kudos
+        related_name='sent_kudos',
+        null = True,
+        blank = True
+    )
+    recipient = models.ForeignKey(
+        CustomUser,
+        on_delete=models.PROTECT,
+        related_name='received_kudos',
+        null = True,
+        blank = True
+    )
     message = models.TextField(null=True)
     is_acknowledged = models.BooleanField(default=False)

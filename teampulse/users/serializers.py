@@ -42,3 +42,8 @@ class TeamSerializer(serializers.ModelSerializer):
     class Meta:
         model = apps.get_model('users.Team')
         fields = '__all__'
+
+class KudosSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = apps.get_model('users.Team')
+        fields = '__all__'

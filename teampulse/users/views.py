@@ -6,12 +6,12 @@ from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
-from .models import Team, CustomUser
+from .models import Team, CustomUser, Kudos
 from event_logs.models import EventLog
-from .serializers import TeamSerializer, CustomUserSerializer
+from .serializers import TeamSerializer, CustomUserSerializer, KudosSerializer
 from pulse_logs.utils import check_user_has_logged
 from pulse_logs.serializers import PulseLogSerializer
-from .permissions import IsOwner, IsStaff, IsSuperUser
+from .permissions import IsOwner, IsStaff, IsSuperUser, CanViewOrEditKudos
 
 class TeamDetail(APIView):
     permission_classes = [permissions.IsAuthenticated, IsSuperUser | IsStaff]
@@ -309,3 +309,127 @@ class CustomUserMeView(APIView):
             'team': serializer.data.get('team') if serializer.data.get('team') else None,
             'has_logged': check_user_has_logged(request.user)
         })
+
+class KudosList(APIView):
+
+    def get_permissions(self):
+        """
+        Instantiates and returns the list of permissions that this view requires.
+        """
+        if self.request.method == 'POST':
+            # Allow anyone logged in to create kudos
+            permission_classes = [permissions.IsAuthenticated]
+        else:
+            # Only allow authenticated Superusers or Staff or Senders or Recipients to get/view list ofkudos
+            permission_classes = [permissions.IsAuthenticated, IsSuperUser | IsStaff | CanViewOrEditKudos]
+        return [permission() for permission in permission_classes]
+
+    def get(self, request):
+        year_week = request.query_params.get('year_week')
+        weeks_total = request.query_params.get('weeks_total')
+
+        if year_week:
+            Kudos_List = Kudos.objects.filter(year_week=year_week)
+        elif weeks_total:
+            try:
+                limit = int(weeks_total)
+            except (ValueError, TypeError):
+                limit = 13 # default fallback if invalid integer
+            
+            # Get the top 'limit' distinct year_week values
+            top_weeks = Kudos.objects.values_list('year_week', flat=True)\
+                                        .distinct()\
+                                        .order_by('-year_week')[:limit]
+            
+            # Filter logs belonging to those weeks
+            Kudos_List = Kudos.objects.filter(year_week__in=top_weeks)\
+            .order_by('-year_week', '-timestamp')
+        else:
+            Kudos_List = Kudos.objects.all()
+
+        serializer = KudosSerializer(Kudos_List, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = KudosSerializer(data=request.data)
+        if serializer.is_valid():
+            kudos = serializer.save(sender=request.user)
+
+        EventLog.objects.create(
+                event_name='kudos_created',
+                version=0,
+                metadata=serializer.data
+            )
+
+        if kudos.sender == kudos.recipient:
+            kudos.delete()
+        return Response(
+            {"detail": "You cannot send kudos to yourself."},
+            status=status.HTTP_400_BAD_REQUEST)
+    
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+# Only bad case reaches here
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class KudosDetail(APIView):
+
+    def get_permissions(self):
+        """
+        Instantiates and returns the list of permissions that this view requires.
+        """
+        if self.request.method == 'PUT':
+            # Allow only senders to update kudos
+            permission_classes = [permissions.IsAuthenticated, CanViewOrEditKudos]
+        else:
+            # Allow only authenticated Superusers or Staff or Senders or Recipients to get/put Kudos
+            permission_classes = [permissions.IsAuthenticated, IsSuperUser | IsStaff | CanViewOrEditKudos]
+        return [permission() for permission in permission_classes]
+
+    def get_object(self, pk):
+        try:
+            return Kudos.objects.get(pk=pk)
+        except Kudos.DoesNotExist:
+            raise Http404
+
+    def get(self, request, pk, format=None):
+        KudosList = self.get_object(pk)
+        serializer = KudosSerializer(KudosList)
+        return Response(serializer.data)
+
+    def put(self, request, pk):
+        kudos = self.get_object(pk)
+        serializer = KudosSerializer(
+            instance=kudos,
+            data=request.data,
+            partial=True
+        )
+        if serializer.is_valid():
+
+            if serializer.validated_data.get('timestamp_local'):
+                # If timestamp_local is provided, update the time indices
+                # If user has provided year/week_index/year_week, it will be ignored in favour of timestamp_local
+                timestamp_local = serializer.validated_data.get('timestamp_local')
+                serializer.save(**timestamp_local)
+            else:
+                serializer.save()
+
+            kudos_data = {
+                'id': serializer.data.get('id'),
+                'sender': serializer.data.get('sender'),
+                'recipient': serializer.data.get('recipient'),
+                'year_week': serializer.data.get('year_week'),
+                'message': serializer.data.get('message'),
+            }
+            EventLog.objects.create(
+                event_name='kudos_updated',
+                version=0,
+                metadata=kudos_data
+            )
+
+            return Response(serializer.data)
+        else:
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )
