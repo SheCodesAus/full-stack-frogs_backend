@@ -38,7 +38,15 @@ class RewardDetail(APIView):
             return Response(
                 serializer.errors,
                 status=status.HTTP_400_BAD_REQUEST
-            )
+                )
+    
+    def delete(self, request, pk):
+        try:
+            reward = self.get_object(pk)
+            reward.delete()
+        except Http404:
+            pass  # Reward doesn't exist; treat as successful delete for idempotency
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 class RewardList(APIView):
 
