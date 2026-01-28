@@ -6,5 +6,6 @@ urlpatterns = [
     path('teams/', views.TeamList.as_view()),
     path('users/', views.CustomUserList.as_view()),
     path('users/<int:pk>/', views.CustomUserDetail.as_view()),
-    path('me/', views.CustomUserMeView.as_view(), name='me')
+    path('me/', views.CustomUserMeView.as_view(), name='me'),
+    path('kudos/', views.KudosList.as_view(), name='kudos')
 ]
