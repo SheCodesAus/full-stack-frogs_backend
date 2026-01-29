@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.apps import apps
-from .models import CustomUser
+from .models import CustomUser, Kudos
 
 class CustomUserSerializer(serializers.ModelSerializer):
 
@@ -42,3 +42,15 @@ class TeamSerializer(serializers.ModelSerializer):
     class Meta:
         model = apps.get_model('users.Team')
         fields = '__all__'
+
+class KudosSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Kudos
+        fields = ['id', 'recipient', 'message', 'timestamp_local', ...]  # whatever you have
+
+    def validate(self, data):
+        sender = self.context['request'].user
+        recipient = data.get('recipient')
+        if sender == recipient:
+            raise serializers.ValidationError("You cannot send kudos to yourself.")
+        return data

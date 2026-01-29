@@ -35,3 +35,28 @@ class IsOwner(permissions.BasePermission):
 
         # Write permissions are only allowed to the owner of the snippet.
         return obj == request.user
+    
+class CanViewOrEditKudos(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return request.user.is_authenticated
+
+    def has_object_permission(self, request, view, obj):
+        user = request.user
+
+        # View only access criteria (GET)
+        can_view = (
+            user.is_superuser or
+            user.is_staff or
+            obj.sender == user or
+            obj.recipient == user
+        )
+
+        if request.method in permissions.SAFE_METHODS:  # GET
+            return can_view
+
+        # Edit access criteria (PUT, DELETE)
+        return (
+            user.is_superuser or
+            user.is_staff or
+            obj.sender == user
+        )
