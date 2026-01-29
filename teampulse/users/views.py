@@ -317,6 +317,37 @@ class CustomUserMeView(APIView):
             'has_logged': check_user_has_logged(request.user)
         })
 
+class  KudosDetail(APIView):
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self, pk):
+        try:
+            return Kudos.objects.get(pk=pk)
+        except Kudos.DoesNotExist:
+            raise Http404
+
+    def put(self, request, pk):
+        kudos = self.get_object(pk)
+        serializer = KudosSerializer(
+            instance=kudos,
+            data=request.data,
+            partial=True
+        )
+        if serializer.is_valid():
+            serializer.save()
+
+            EventLog.objects.create(
+                event_name='kudos_updated',
+                version=0,
+                metadata=serializer.data
+            )
+
+            return Response(serializer.data)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 class KudosList(APIView):
     permission_classes = [permissions.IsAuthenticated]
 

@@ -7,5 +7,6 @@ urlpatterns = [
     path('users/', views.CustomUserList.as_view()),
     path('users/<int:pk>/', views.CustomUserDetail.as_view()),
     path('me/', views.CustomUserMeView.as_view(), name='me'),
-    path('kudos/', views.KudosList.as_view(), name='kudos')
+    path('kudos/', views.KudosList.as_view(), name='kudos'),
+    path('kudos/<int:pk>/', views.KudosDetail.as_view(), name='kudos_detail')
 ]
