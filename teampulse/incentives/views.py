@@ -38,7 +38,26 @@ class RewardDetail(APIView):
             return Response(
                 serializer.errors,
                 status=status.HTTP_400_BAD_REQUEST
+                )
+    
+    def delete(self, request, pk):
+        try:
+            reward = self.get_object(pk)
+        
+            # Serialize the reward to get its data as a dict
+            serializer = RewardSerializer(reward)
+
+            reward.delete()
+            EventLog.objects.create(
+                event_name='reward_deleted',
+                version=0,
+                metadata=serializer.data  # Use serialized data here
             )
+
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Http404:
+            pass  # Reward doesn't exist; treat as successful delete for idempotency
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 class RewardList(APIView):
 

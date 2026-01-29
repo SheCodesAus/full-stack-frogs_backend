@@ -42,3 +42,23 @@ class TeamSerializer(serializers.ModelSerializer):
     class Meta:
         model = apps.get_model('users.Team')
         fields = '__all__'
+
+class KudosSerializer(serializers.ModelSerializer):
+    sender_first_name = serializers.CharField(source='sender.first_name', read_only=True)  # Derive from sender FK
+    sender_last_name = serializers.CharField(source='sender.last_name', read_only=True)  # Derive from sender FK
+
+    class Meta:
+        model = apps.get_model('users.Kudos')
+        fields = '__all__'
+        extra_kwargs = {'sender': {'read_only': True}}  # Prevent client from setting sender
+
+    def create(self, validated_data):
+        # Set sender from the authenticated user in context
+        user = self.context['request'].user
+        validated_data['sender'] = user
+
+        # Populate denormalized fields
+        validated_data['sender_first_name'] = user.first_name
+        validated_data['sender_last_name'] = user.last_name
+
+        return super().create(validated_data)
