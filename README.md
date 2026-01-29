@@ -118,6 +118,9 @@ Team Pulse is for remote or hybrid teams and their managers. Team members use it
 | GET         | /user_points                             | Returns either User Point for logged in user or a list of User Points for Superuser |                                                                                                            | 200                      | Token auth (single) or Superuser (list) |
 | POST        | /user_points                             | Create new or update existing User Point (method was overloaded)                    | "user": integer, "points": "integer"                                                                       | 201                      | Token auth                              |
 | PUT         | /user_points/id                          | Update existing User Point                                                          | "user": integer, "points": "integer"                                                                       | 200                      | Token auth or Superuser                 |
+| GET         | /kudos                                   | Returns a list of Kudos                                                             |                                                                                                            | 200                      | Token auth                              |
+| POST        | /kudos                                   | Create new Kudos                                                                    | "message": string, "recipient": "string"                                                                   | 201                      | Token auth                              |
+| PUT         | /kudos/id                                | Update existing Kudos                                                               | "message": string, "recipient": "string", "is_acknowledged": bool                                          | 200                      | Token auth                              |
 
 
 ### Object Definitions
@@ -190,6 +193,17 @@ Team Pulse is for remote or hybrid teams and their managers. Team members use it
 | user (FK)  | integer   |      |
 | points     | integer   |      |
 
+#### Kudos
+| Field                | Data Type | Note |
+|:---------------------|:----------|:-----|
+| id (PK)              | integer   |      |
+| sender (FK)          | integer   |      |
+| sender_first_name    | string    |      |  
+| sender_last_name     | string    |      |
+| recipient            | integer   |      |
+| message              | string    |      |
+| is_acknowledged      | boolean   |      |
+
 ### Database Schema
 
-![Our database schema](./img/drawSQL-image-export-2026-01-16.png)
+![Our database schema](./img/drawSQL-image-export-2026-01-29.png)
