@@ -181,9 +181,16 @@ class CustomUserDetail(APIView):
             # 1. Retrieve the user instance safely
             # Note: get_object_or_404 is essential for safe retrieval
             user_instance = get_object_or_404(CustomUser, pk=pk)
+            serialize_user = CustomUserSerializer(user_instance)
 
             # 2. Perform the deletion
             user_instance.delete()
+
+            EventLog.objects.create(
+                event_name='user_deleted',
+                version=0,
+                metadata=serialize_user.data  # Use serialized data here
+            )
 
             # 3. Return a successful response
             # HTTP 204 No Content is the standard response for successful deletion
